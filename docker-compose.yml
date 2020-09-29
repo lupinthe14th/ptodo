@@ -1,0 +1,48 @@
+---
+version: "3.7"
+services:
+  app:
+    image: frontend
+    build:
+      context: ./frontend/
+      target: base-env
+    command: yarn dev
+    restart: always
+    volumes:
+      - ./frontend/package.json:/usr/src/app/package.json
+      - ./frontend/index.html:/usr/src/app/index.html
+      - ./frontend/public:/usr/src/app/public
+      - ./frontend/src:/usr/src/app/src
+      - ./frontend/yarn.lock:/usr/src/app/yarn.lock
+      - ./frontend/.env:/usr/src/app/.env
+    ports:
+      - 3000:3000
+    container_name: app
+  api:
+    image: backend
+    build:
+      context: ./backend/
+      target: base-env
+    command: uvicorn app.main:app --workers 1 --reload --host 0.0.0.0 --port 8000
+    restart: always
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/usr/src/app
+    environment:
+      ENVIRONMENT: dev
+      TESTING: 0
+      DATABASE_URL: "postgresql://dev:password-dev@db:5432/ptodo_dev"
+      DATABASE_TEST_URL: "postgres://test:password-test@db:5432/ptodo_test"
+    ports:
+      - 8000:8000
+    container_name: api
+  db:
+    image: postgres:10.7
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - ./db/initdb/00_create_database.sql:/docker-entrypoint-initdb.d/00_create_database.sql
+    container_name: db

@@ -1,0 +1,25 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+flake8 = "*"
+mypy = "*"
+pytest = "*"
+requests = "*"
+black = "*"
+isort = "*"
+
+[packages]
+async-exit-stack = "*"
+SQLAlchemy = "*"
+async_generator = "*"
+fastapi = "*"
+uvicorn = "*"
+databases = {extras = ["postgresql"],version = "*"}
+loguru = "*"
+asyncpg = "*"
+
+[requires]
+python_version = "3.8"
