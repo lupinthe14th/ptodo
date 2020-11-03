@@ -116,3 +116,52 @@ docker-compose exec db psql -U postgres
 ## SeeAlso
 - [TodoMVC](http://todomvc.com/examples/vue/)
 - [tiangolo/full-stack-fastapi-postgresql](https://github.com/tiangolo/full-stack-fastapi-postgresql) 
+
+
+## CI/CD
+
+using [terraform](https://www.terraform.io/)
+
+## Manage tfstate file
+
+seeAlso: https://www.terraform.io/docs/backends/types/s3.html
+
+The tfstate files are managed using S3 buckets.
+
+- enable versionning
+- configure encryption
+- configure block public access
+
+```
+aws s3api create-bucket --bucket tfstate-ptodo-prod \
+  --create-bucket-configuration LocationConstraint=ap-northeast-1
+```
+
+```
+aws s3api put-bucket-versioning --bucket tfstate-ptodo-prod \
+  --versioning-configuration Status=Enabled
+```
+
+```
+aws s3api put-bucket-encryption --bucket tfstate-ptodo-prod \
+  --server-side-encryption-configuration '{
+  "Rules": [
+    {
+      "ApplyServerSideEncryptionByDefault": {
+        "SSEAlgorithm": "AES256"
+      }
+    }
+  ]
+}'
+```
+
+```
+aws s3api put-public-access-block --bucket tfstate-ptodo-prod \
+  --public-access-block-configuration '{
+    "BlockPublicAcls": true,
+    "IgnorePublicAcls": true,
+    "BlockPublicPolicy": true,
+    "RestrictPublicBuckets": true
+}'
+```
+
