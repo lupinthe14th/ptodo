@@ -1,21 +1,18 @@
 # -----------------------------------------------------------------------------
 # Data sources to get VPC and default security group details
 # -----------------------------------------------------------------------------
-data "aws_vpc" "prod" {
+data "aws_vpc" "ptodo" {
   tags = {
+    Name        = "ptodo-vpc"
     Environment = "prod"
   }
 }
 
-data "aws_subnet_ids" "public_prod" {
-  vpc_id = data.aws_vpc.prod.id
+data "aws_subnet_ids" "public" {
+  vpc_id = data.aws_vpc.ptodo.id
   tags = {
+    Name        = "ptodo-vpc-public-ap-northeast-1?"
     Environment = "prod"
-  }
-
-  filter {
-    name   = "mapPublicIpOnLaunch"
-    values = ["true"]
   }
 }
 
@@ -63,7 +60,7 @@ resource "aws_lb" "ptodo" {
   enable_deletion_protection = true
 
 
-  subnets = data.aws_subnet_ids.public_prod.ids
+  subnets = data.aws_subnet_ids.public.ids
 
   access_logs {
     bucket  = aws_s3_bucket.alb_log.id
@@ -72,13 +69,37 @@ resource "aws_lb" "ptodo" {
 
   security_groups = [
     module.http_sg.this_security_group_id,
+    module.https_sg.this_security_group_id,
   ]
+  tags = {
+    Name        = "ptodo"
+    Environment = "prod"
+  }
+
 }
 
-resource "aws_lb_listener" "http" {
+resource "aws_lb_listener" "redirect_http_to_https" {
   load_balancer_arn = aws_lb.ptodo.arn
   port              = "80"
   protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.ptodo.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  certificate_arn   = aws_acm_certificate.ptodo.arn
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
 
   default_action {
     type = "fixed-response"
@@ -90,6 +111,45 @@ resource "aws_lb_listener" "http" {
     }
   }
 }
+
+resource "aws_lb_target_group" "ptodo" {
+  name                 = "ptodo"
+  target_type          = "ip"
+  vpc_id               = data.aws_vpc.ptodo.id
+  port                 = "3000"
+  protocol             = "HTTP"
+  deregistration_delay = 300
+
+  health_check {
+    path                = "/"
+    healthy_threshold   = 5
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 30
+    matcher             = 200
+    port                = "traffic-port"
+    protocol            = "HTTP"
+  }
+
+  depends_on = [aws_lb.ptodo]
+}
+
+resource "aws_lb_listener_rule" "ptodo" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.ptodo.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+}
+
 # -----------------------------------------------------------------------------
 # Security Group
 # -----------------------------------------------------------------------------
@@ -98,10 +158,30 @@ module "http_sg" {
 
   name        = "http_sg"
   description = "Security group with HTTP ports open for everybody (IPv4 CIDR), egress ports are all world open"
-  vpc_id      = data.aws_vpc.prod.id
+  vpc_id      = data.aws_vpc.ptodo.id
 
   ingress_cidr_blocks = ["0.0.0.0/0"]
+  tags = {
+    Name        = "ptodo"
+    Environment = "prod"
+  }
 }
+
+module "https_sg" {
+  source = "terraform-aws-modules/security-group/aws"
+
+  name        = "https_sg"
+  description = "Security group with HTTPS ports open for everybody (IPv4 CIDR), egress ports are all world open"
+  vpc_id      = data.aws_vpc.ptodo.id
+
+  ingress_cidr_blocks = ["0.0.0.0/0"]
+  ingress_rules       = ["https-443-tcp"]
+  tags = {
+    Name        = "ptodo"
+    Environment = "prod"
+  }
+}
+
 # -----------------------------------------------------------------------------
 # DNS
 # -----------------------------------------------------------------------------
@@ -152,7 +232,6 @@ resource "aws_route53_record" "ptodo_certificate" {
   ttl             = 60
   type            = each.value.type
   zone_id         = data.aws_route53_zone.ptodo_ordinarius-fectum.zone_id
-
 }
 
 resource "aws_acm_certificate_validation" "ptodo" {
