@@ -45,6 +45,11 @@ resource "aws_codebuild_project" "ptodo" {
     type = "CODEPIPELINE"
   }
 
+  cache {
+    type  = "LOCAL"
+    modes = ["LOCAL_DOCKER_LAYER_CACHE", "LOCAL_SOURCE_CACHE"]
+  }
+
   environment {
     type            = "LINUX_CONTAINER"
     compute_type    = "BUILD_GENERAL1_SMALL"
