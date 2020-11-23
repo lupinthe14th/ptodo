@@ -29,5 +29,5 @@ phases:
     commands:
       - echo Build completed on `date`
       - printf '[{"name":"%s", "imageUri":"%s"},{"name":"%s", "imageUri":"%s"}]' $IMAGE_REPO_NAME_FRONTEND $IMAGE_FRONTEND $IMAGE_REPO_NAME_BACKEND $IMAGE_BACKEND > imagedefinitions_backend.json
-  artifacts:
-    files: imagedefinitions.json
+artifacts:
+  files: imagedefinitions.json
