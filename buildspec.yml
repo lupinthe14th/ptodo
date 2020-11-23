@@ -11,6 +11,7 @@ phases:
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
+      - AWS_ACCOUNT_ID=${CODEBUILD_BUILD_ARN} && IFS=':' && set -- $AWS_ACCOUNT_ID && AWS_ACCOUNT_ID=$5
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       - REPOSITORY_URI_BACKEND=$(aws ecr describe-repositories --repository-names $IMAGE_REPO_NAME_BACKEND --output text --query "repositories[0].repositoryUri")
       - REPOSITORY_URI_FRONTEND=$(aws ecr describe-repositories --repository-names $IMAGE_REPO_NAME_FRONTEND --output text --query "repositories[0].repositoryUri")
