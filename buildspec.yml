@@ -25,6 +25,8 @@ phases:
   post_build:
     commands:
       - echo Build completed on `date`
+      - echo "IMAGE_BACKEND: $IMAGE_BACKEND"
+      - echo "IMAGE_FRONTEND: $IMAGE_FRONTEND"
       - docker tag backend:latest $IMAGE_BACKEND
       - docker tag frontend:latest $IMAGE_FRONTEND
       - docker push $IMAGE_BACKEND
