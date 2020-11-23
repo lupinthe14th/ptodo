@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Data sources to get VPC and default security group details
+# Data sources to get VPC
 # -----------------------------------------------------------------------------
 data "aws_vpc" "ptodo" {
   tags = {
@@ -105,8 +105,8 @@ resource "aws_lb_listener" "https" {
     type = "fixed-response"
 
     fixed_response {
-      content_type = "text/plain"
-      message_body = "Sorry, maintenance now!"
+      content_type = "text/html"
+      message_body = "<html><head><title>Sorry, maintenance now!</title></head><body><center><h1>Sorry, maintenance now!</h1></center></body></html>"
       status_code  = "503"
     }
   }
@@ -134,6 +134,46 @@ resource "aws_lb_target_group" "ptodo" {
   depends_on = [aws_lb.ptodo]
 }
 
+resource "aws_lb_target_group" "nginx" {
+  name                 = "nginx"
+  target_type          = "ip"
+  vpc_id               = data.aws_vpc.ptodo.id
+  port                 = "80"
+  protocol             = "HTTP"
+  deregistration_delay = 300
+
+  health_check {
+    path                = "/"
+    healthy_threshold   = 5
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 30
+    matcher             = 200
+    port                = "traffic-port"
+    protocol            = "HTTP"
+  }
+
+  depends_on = [aws_lb.ptodo]
+}
+
+
+resource "aws_lb_listener_rule" "nginx" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 99
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.nginx.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+}
+
+
 resource "aws_lb_listener_rule" "ptodo" {
   listener_arn = aws_lb_listener.https.arn
   priority     = 100
@@ -149,6 +189,28 @@ resource "aws_lb_listener_rule" "ptodo" {
     }
   }
 }
+
+resource "aws_lb_listener_rule" "maintenance" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 200
+
+  action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/html"
+      message_body = "<html><head><title>Sorry, maintenance now!</title></head><body><center><h1>Sorry, maintenance now!</h1></center></body></html>"
+      status_code  = "503"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+}
+
 
 # -----------------------------------------------------------------------------
 # Security Group
