@@ -27,6 +27,6 @@ phases:
       - docker tag frontend:latest $REPOSITORY_URI_FRONTEND:latest
       - docker push $REPOSITORY_URI_BACKEND:latest
       - docker push $REPOSITORY_URI_FRONTEND:latest
-      - printf '[{"name":"%s", "imageUri":"%s"},{"name":"%s", "imageUri":"%s"}]' $IMAGE_REPO_NAME_FRONTEND $REPOSITORY_URI_FRONTEND:latest $IMAGE_REPO_NAME_BACKEND $REPOSITORY_URI_FRONTEND:latest > imagedefinitions_backend.json
+      - printf '[{"name":"%s", "imageUri":"%s"},{"name":"%s", "imageUri":"%s"}]' $IMAGE_REPO_NAME_FRONTEND $REPOSITORY_URI_FRONTEND:latest $IMAGE_REPO_NAME_BACKEND $REPOSITORY_URI_FRONTEND:latest > imagedefinitions.json
 artifacts:
   files: imagedefinitions.json
