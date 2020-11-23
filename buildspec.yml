@@ -21,14 +21,14 @@ phases:
     commands:
       - echo Build started on `date`
       - echo Building the Docker image...
-      - docker-compose build
+      - docker-compose build api app
+  post_build:
+    commands:
+      - echo Build completed on `date`
       - docker tag backend:latest $IMAGE_BACKEND
       - docker tag frontend:latest $IMAGE_FRONTEND
       - docker push $IMAGE_BACKEND
       - docker push $IMAGE_FRONTEND
-  post_build:
-    commands:
-      - echo Build completed on `date`
       - printf '[{"name":"%s", "imageUri":"%s"},{"name":"%s", "imageUri":"%s"}]' $IMAGE_REPO_NAME_FRONTEND $IMAGE_FRONTEND $IMAGE_REPO_NAME_BACKEND $IMAGE_BACKEND > imagedefinitions_backend.json
 artifacts:
   files: imagedefinitions.json
