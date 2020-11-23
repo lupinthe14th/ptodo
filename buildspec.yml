@@ -1,0 +1,33 @@
+---
+version: 0.2
+env:
+  variables:
+    IMAGE_REPO_NAME_BACKEND: "ptodo/backend"
+    IMAGE_REPO_NAME_FRONTEND: "ptodo/frontend"
+phases:
+  install:
+    runteime-versions:
+      docker: 18
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - REPOSITORY_URI_BACKEND=$(aws ecr describe-repositories --repository-names $IMAGE_REPO_NAME_BACKEND --output text --query "repositories[0].repositoryUri")
+      - REPOSITORY_URI_FRONTEND=$(aws ecr describe-repositories --repository-names $IMAGE_REPO_NAME_FRONTEND --output text --query "repositories[0].repositoryUri")
+      - IMAGE_BACKEND=$REPOSITORY_URI_BACKEND:latest
+      - IMAGE_FRONTEND=$REPOSITORY_URI_FRONTEND:latest
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker-compose build
+      - docker tag backend:latest $IMAGE_BACKEND
+      - docker tag frontend:latest $IMAGE_FRONTEND
+      - docker push $IMAGE_BACKEND
+      - docker push $IMAGE_FRONTEND
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - printf '[{"name":"%s", "imageUri":"%s"},{"name":"%s", "imageUri":"%s"}]' $IMAGE_REPO_NAME_FRONTEND $IMAGE_FRONTEND $IMAGE_REPO_NAME_BACKEND $IMAGE_BACKEND > imagedefinitions_backend.json
+  artifacts:
+    files: imagedefinitions.json
