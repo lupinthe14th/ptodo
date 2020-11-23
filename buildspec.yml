@@ -15,8 +15,8 @@ phases:
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       - REPOSITORY_URI_BACKEND=$(aws ecr describe-repositories --repository-names $IMAGE_REPO_NAME_BACKEND --output text --query "repositories[0].repositoryUri")
       - REPOSITORY_URI_FRONTEND=$(aws ecr describe-repositories --repository-names $IMAGE_REPO_NAME_FRONTEND --output text --query "repositories[0].repositoryUri")
-      - IMAGE_BACKEND="$REPOSITORY_URI_BACKEND:latest"
-      - IMAGE_FRONTEND="$REPOSITORY_URI_FRONTEND:latest"
+      - IMAGE_BACKEND="$REPOSITORY_URI_BACKEND\:latest"
+      - IMAGE_FRONTEND="$REPOSITORY_URI_FRONTEND\:latest"
   build:
     commands:
       - echo Build started on `date`
