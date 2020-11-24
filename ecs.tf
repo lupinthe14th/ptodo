@@ -12,6 +12,27 @@ data "aws_subnet_ids" "private" {
 # -----------------------------------------------------------------------------
 # ECS
 # -----------------------------------------------------------------------------
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name               = "MyEcsTaskRole"
+  assume_role_policy = data.aws_iam_policy_document.assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "amazon_ecs_task_execution_role_policy" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
 resource "aws_ecs_cluster" "ptodo" {
   name = "ptodo"
 }
@@ -22,6 +43,7 @@ resource "aws_ecs_task_definition" "ptodo" {
   memory                   = "512"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   container_definitions    = file("./container_definitions.json")
 }
 
@@ -51,7 +73,6 @@ resource "aws_ecs_service" "ptodo" {
     ignore_changes = [desired_count]
   }
 }
-
 
 # -----------------------------------------------------------------------------
 # Security Group
