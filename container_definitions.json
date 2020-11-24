@@ -9,5 +9,16 @@
         "containerPort":80
       }
     ]
+  },
+  {
+    "name": "backend",
+    "image": "nginx:latest",
+    "essential": true,
+    "portMappings": [
+      {
+        "protocol":"tcp",
+        "containerPort":8080
+      }
+    ]
   }
 ]
