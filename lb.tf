@@ -134,46 +134,6 @@ resource "aws_lb_target_group" "ptodo" {
   depends_on = [aws_lb.ptodo]
 }
 
-resource "aws_lb_target_group" "nginx" {
-  name                 = "nginx"
-  target_type          = "ip"
-  vpc_id               = data.aws_vpc.ptodo.id
-  port                 = "80"
-  protocol             = "HTTP"
-  deregistration_delay = 300
-
-  health_check {
-    path                = "/"
-    healthy_threshold   = 5
-    unhealthy_threshold = 2
-    timeout             = 5
-    interval            = 30
-    matcher             = 200
-    port                = "traffic-port"
-    protocol            = "HTTP"
-  }
-
-  depends_on = [aws_lb.ptodo]
-}
-
-
-resource "aws_lb_listener_rule" "nginx" {
-  listener_arn = aws_lb_listener.https.arn
-  priority     = 99
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.nginx.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/*"]
-    }
-  }
-}
-
-
 resource "aws_lb_listener_rule" "ptodo" {
   listener_arn = aws_lb_listener.https.arn
   priority     = 100

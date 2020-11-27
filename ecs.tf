@@ -64,9 +64,9 @@ resource "aws_ecs_service" "ptodo" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.nginx.arn
+    target_group_arn = aws_lb_target_group.ptodo.arn
     container_name   = "frontend"
-    container_port   = 80
+    container_port   = 3000
   }
 
   lifecycle {
