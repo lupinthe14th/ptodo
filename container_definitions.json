@@ -3,6 +3,14 @@
     "name": "frontend",
     "image": "nginx:latest",
     "essential": true,
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-region": "ap-northeast-1",
+        "awslogs-stream-prefix": "frontend",
+        "awslogs-group": "/ecs/ptodo"
+      }
+    },
     "portMappings": [
       {
         "protocol":"tcp",
@@ -14,6 +22,14 @@
     "name": "backend",
     "image": "nginx:latest",
     "essential": true,
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-region": "ap-northeast-1",
+        "awslogs-stream-prefix": "backend",
+        "awslogs-group": "/ecs/ptodo"
+      }
+    },
     "portMappings": [
       {
         "protocol":"tcp",

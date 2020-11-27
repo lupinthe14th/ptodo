@@ -12,25 +12,25 @@ data "aws_subnet_ids" "private" {
 # -----------------------------------------------------------------------------
 # ECS
 # -----------------------------------------------------------------------------
-data "aws_iam_policy_document" "assume_role" {
-  statement {
-    actions = ["sts:AssumeRole"]
+data "aws_iam_policy" "ecs_task_execution_role_policy" {
+  arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
 
-    principals {
-      type        = "Service"
-      identifiers = ["ecs-tasks.amazonaws.com"]
-    }
+data "aws_iam_policy_document" "ecs_task_execution" {
+  source_json = data.aws_iam_policy.ecs_task_execution_role_policy.policy
+
+  statement {
+    effect    = "Allow"
+    actions   = ["ssm:GetParameters", "kms:Decrypt"]
+    resources = ["*"]
   }
 }
 
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name               = "MyEcsTaskRole"
-  assume_role_policy = data.aws_iam_policy_document.assume_role.json
-}
-
-resource "aws_iam_role_policy_attachment" "amazon_ecs_task_execution_role_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+module "ecs_task_execution_role" {
+  source     = "./modules/iam_role"
+  name       = "ecs-task-execution"
+  identifier = "ecs-tasks.amazonaws.com"
+  policy     = data.aws_iam_policy_document.ecs_task_execution.json
 }
 
 resource "aws_ecs_cluster" "ptodo" {
@@ -43,7 +43,7 @@ resource "aws_ecs_task_definition" "ptodo" {
   memory                   = "512"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  execution_role_arn       = module.ecs_task_execution_role.iam_role_arn
   container_definitions    = file("./container_definitions.json")
 }
 
