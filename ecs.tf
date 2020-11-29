@@ -53,7 +53,7 @@ resource "aws_ecs_service" "ptodo" {
   task_definition                   = aws_ecs_task_definition.ptodo.arn
   desired_count                     = 2
   launch_type                       = "FARGATE"
-  platform_version                  = "1.3.0"
+  platform_version                  = "LATEST"
   health_check_grace_period_seconds = 60
 
   network_configuration {
@@ -77,6 +77,13 @@ resource "aws_ecs_service" "ptodo" {
 # -----------------------------------------------------------------------------
 # Security Group
 # -----------------------------------------------------------------------------
+data "aws_region" "current" {}
+
+data "aws_vpc_endpoint" "s3" {
+  vpc_id       = data.aws_vpc.ptodo.id
+  service_name = "com.amazonaws.${data.aws_region.current.name}.s3"
+}
+
 module "frontend_sg" {
   source = "terraform-aws-modules/security-group/aws"
 
@@ -86,11 +93,20 @@ module "frontend_sg" {
 
   ingress_with_cidr_blocks = [
     {
-      from_port   = 80
-      to_port     = 80
+      from_port   = 3000
+      to_port     = 3000
       protocol    = "tcp"
       description = "frontend service ports"
       cidr_blocks = data.aws_vpc.ptodo.cidr_block
+    }
+  ]
+
+  egress_with_cidr_blocks = [
+    {
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      cidr_blocks = "0.0.0.0/0"
     }
   ]
 

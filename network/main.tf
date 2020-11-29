@@ -1,6 +1,16 @@
-data "aws_security_group" "default" {
-  name   = "default"
-  vpc_id = module.vpc.vpc_id
+module "vpc-endpoints_sg" {
+  source = "terraform-aws-modules/security-group/aws"
+
+  name        = "vpc-endpoints_sg"
+  description = "Security group with HTTPS ports open for private subnet (IPv4 CIDR), egress ports are all world open"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress_cidr_blocks = ["10.0.0.0/16"]
+  ingress_rules       = ["https-443-tcp"]
+  tags = {
+    Name        = "ptodo"
+    Environment = "prod"
+  }
 }
 
 module "vpc" {
@@ -24,15 +34,23 @@ module "vpc" {
   enable_nat_gateway = false
   enable_vpn_gateway = false
 
-  # VPC Endpoint for ECR API
-  enable_ecr_api_endpoint              = true
-  ecr_api_endpoint_private_dns_enabled = true
-  ecr_api_endpoint_security_group_ids  = [data.aws_security_group.default.id]
+  # VPC endpoint for S3
+  enable_s3_endpoint = true
+
+  # VPC endpoint for SSM
+  enable_ssm_endpoint              = true
+  ssm_endpoint_private_dns_enabled = true
+  ssm_endpoint_security_group_ids  = [module.vpc-endpoints_sg.this_security_group_id]
+
+  # VPC endpoint for logs
+  enable_logs_endpoint              = true
+  logs_endpoint_private_dns_enabled = true
+  logs_endpoint_security_group_ids  = [module.vpc-endpoints_sg.this_security_group_id]
 
   # VPC Endpoint for ECR DKR
   enable_ecr_dkr_endpoint              = true
   ecr_dkr_endpoint_private_dns_enabled = true
-  ecr_dkr_endpoint_security_group_ids  = [data.aws_security_group.default.id]
+  ecr_dkr_endpoint_security_group_ids  = [module.vpc-endpoints_sg.this_security_group_id]
 
   tags = {
     Terraform   = "true"
