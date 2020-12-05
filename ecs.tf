@@ -210,6 +210,15 @@ module "backend_sg" {
     }
   ]
 
+  egress_with_cidr_blocks = [
+    {
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      cidr_blocks = "0.0.0.0/0"
+    }
+  ]
+
   tags = {
     Name        = "ptodo"
     Service     = "backend"
