@@ -46,7 +46,7 @@ data "aws_ssm_parameter" "github_token" {
 }
 
 resource "aws_codepipeline" "ptodo" {
-  name     = "ptodo"
+  name     = "ptodo-frontend"
   role_arn = module.codepipeline_role.iam_role_arn
 
   stage {
@@ -74,15 +74,27 @@ resource "aws_codepipeline" "ptodo" {
     name = "Build"
 
     action {
-      name             = "Build"
+      name             = "Frontend"
       category         = "Build"
       owner            = "AWS"
       provider         = "CodeBuild"
       version          = 1
       input_artifacts  = ["Source"]
-      output_artifacts = ["Build"]
+      output_artifacts = ["Frontend"]
       configuration = {
-        ProjectName = aws_codebuild_project.ptodo.id
+        ProjectName = aws_codebuild_project.ptodo-frontend.id
+      }
+    }
+    action {
+      name             = "Backend"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = 1
+      input_artifacts  = ["Source"]
+      output_artifacts = ["Backend"]
+      configuration = {
+        ProjectName = aws_codebuild_project.ptodo-backend.id
       }
     }
   }
@@ -91,17 +103,31 @@ resource "aws_codepipeline" "ptodo" {
     name = "Deploy"
 
     action {
-      name            = "Deploy"
+      name            = "Frontend"
       category        = "Deploy"
       owner           = "AWS"
       provider        = "ECS"
       version         = 1
-      input_artifacts = ["Build"]
+      input_artifacts = ["Frontend"]
 
       configuration = {
         ClusterName = aws_ecs_cluster.ptodo.name
-        ServiceName = aws_ecs_service.ptodo.name
-        FileName    = "imagedefinitions.json"
+        ServiceName = aws_ecs_service.frontend.name
+        FileName    = "frontendimagedefinitions.json"
+      }
+    }
+    action {
+      name            = "Backend"
+      category        = "Deploy"
+      owner           = "AWS"
+      provider        = "ECS"
+      version         = 1
+      input_artifacts = ["Backend"]
+
+      configuration = {
+        ClusterName = aws_ecs_cluster.ptodo.name
+        ServiceName = aws_ecs_service.backend.name
+        FileName    = "backendimagedefinitions.json"
       }
     }
   }
@@ -111,7 +137,6 @@ resource "aws_codepipeline" "ptodo" {
     type     = "S3"
   }
 }
-
 
 resource "aws_codepipeline_webhook" "ptodo" {
   name            = "ptodo"
@@ -145,3 +170,4 @@ resource "github_repository_webhook" "ptodo" {
 
   events = ["push"]
 }
+
