@@ -39,7 +39,7 @@ resource "aws_codebuild_project" "ptodo-backend" {
 
   source {
     type      = "CODEPIPELINE"
-    buildspec = "./backend/buildspec.yaml"
+    buildspec = "./backend/buildspec.yml"
   }
 
   artifacts {
@@ -65,7 +65,7 @@ resource "aws_codebuild_project" "ptodo-frontend" {
 
   source {
     type      = "CODEPIPELINE"
-    buildspec = "./frontend/buildspec.yaml"
+    buildspec = "./frontend/buildspec.yml"
   }
 
   artifacts {
