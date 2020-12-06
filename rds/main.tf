@@ -1,6 +1,8 @@
 ######################################
 # Data sources to get VPC and subnets
 ######################################
+data "aws_region" "current" {}
+
 data "aws_vpc" "ptodo" {
   tags = {
     Name        = "ptodo-vpc"
@@ -11,7 +13,7 @@ data "aws_vpc" "ptodo" {
 data "aws_subnet_ids" "db" {
   vpc_id = data.aws_vpc.ptodo.id
   tags = {
-    Name        = "ptodo-vpc-db-ap-northeast-1?"
+    Name        = "ptodo-vpc-db-${data.aws_region.current.name}?"
     Environment = "prod"
   }
 }

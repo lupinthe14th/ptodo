@@ -1,14 +1,4 @@
-# -----------------------------------------------------------------------------
-# Data sources to get Private subnet
-# -----------------------------------------------------------------------------
-data "aws_subnet_ids" "private" {
-  vpc_id = data.aws_vpc.ptodo.id
-  tags = {
-    Name        = "ptodo-vpc-private-${data.aws_region.current.name}?"
-    Environment = "prod"
-  }
-}
-
+data "aws_region" "current" {}
 # -----------------------------------------------------------------------------
 # ECS
 # -----------------------------------------------------------------------------
@@ -107,16 +97,16 @@ resource "aws_ecs_service" "frontend" {
   name                              = "frontend"
   cluster                           = aws_ecs_cluster.ptodo.arn
   task_definition                   = aws_ecs_task_definition.frontend.arn
-  desired_count                     = 2
+  desired_count                     = 3
   launch_type                       = "FARGATE"
   platform_version                  = "LATEST"
   health_check_grace_period_seconds = 60
 
   network_configuration {
-    assign_public_ip = false
+    assign_public_ip = true
     security_groups  = [module.frontend_sg.this_security_group_id]
 
-    subnets = data.aws_subnet_ids.private.ids
+    subnets = data.aws_subnet_ids.public.ids
   }
 
   load_balancer {
@@ -134,15 +124,15 @@ resource "aws_ecs_service" "backend" {
   name             = "backend"
   cluster          = aws_ecs_cluster.ptodo.arn
   task_definition  = aws_ecs_task_definition.backend.arn
-  desired_count    = 2
+  desired_count    = 3
   launch_type      = "FARGATE"
   platform_version = "LATEST"
 
   network_configuration {
-    assign_public_ip = false
+    assign_public_ip = true
     security_groups  = [module.backend_sg.this_security_group_id]
 
-    subnets = data.aws_subnet_ids.private.ids
+    subnets = data.aws_subnet_ids.public.ids
   }
 
   lifecycle {
@@ -153,13 +143,6 @@ resource "aws_ecs_service" "backend" {
 # -----------------------------------------------------------------------------
 # Security Group
 # -----------------------------------------------------------------------------
-data "aws_region" "current" {}
-
-data "aws_vpc_endpoint" "s3" {
-  vpc_id       = data.aws_vpc.ptodo.id
-  service_name = "com.amazonaws.${data.aws_region.current.name}.s3"
-}
-
 module "frontend_sg" {
   source = "terraform-aws-modules/security-group/aws"
 

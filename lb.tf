@@ -11,7 +11,7 @@ data "aws_vpc" "ptodo" {
 data "aws_subnet_ids" "public" {
   vpc_id = data.aws_vpc.ptodo.id
   tags = {
-    Name        = "ptodo-vpc-public-ap-northeast-1?"
+    Name        = "ptodo-vpc-public-${data.aws_region.current.name}?"
     Environment = "prod"
   }
 }
