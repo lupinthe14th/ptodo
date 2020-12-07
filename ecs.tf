@@ -1,4 +1,13 @@
+# -----------------------------------------------------------------------------
+# Data sources to get aws_region and rds cluster
+# -----------------------------------------------------------------------------
+data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
+
+data "aws_rds_cluster" "ptodo" {
+  cluster_identifier = "ptodo-rds"
+}
+
 # -----------------------------------------------------------------------------
 # ECS
 # -----------------------------------------------------------------------------
@@ -38,7 +47,10 @@ resource "aws_ecs_task_definition" "frontend" {
   [
     {
       "name": "frontend",
-      "image": "937976438540.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/ptodo/frontend:latest",
+      "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/ptodo/frontend:latest",
+      "environment": [
+        {"name": "VITE_API_ENDPOINT","value": "http://${aws_lb.api.dns_name}/todos"}
+      ],
       "command": ["yarn", "dev"],
       "essential": true,
       "logConfiguration": {
@@ -71,7 +83,15 @@ resource "aws_ecs_task_definition" "backend" {
   [
     {
       "name": "backend",
-      "image": "937976438540.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/ptodo/backend:latest",
+      "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/ptodo/backend:latest",
+      "environment": [
+        {"name": "DB_HOST","value": "${data.aws_rds_cluster.ptodo.endpoint}"},
+        {"name": "DB_NAME", "value": "ptodo"}
+      ],
+      "secrets": [
+        {"name": "DB_USERNAME", "valueFrom": "/db/username"},
+        {"name": "DB_PASSWORD", "valueFrom": "/db/password"}
+      ],
       "command": ["uvicorn", "app.main:app", "--workers", "1", "--reload", "--host", "0.0.0.0", "--port", "8000"],
       "essential": true,
       "logConfiguration": {
@@ -133,6 +153,12 @@ resource "aws_ecs_service" "backend" {
     security_groups  = [module.backend_sg.this_security_group_id]
 
     subnets = data.aws_subnet_ids.public.ids
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.api.arn
+    container_name   = "backend"
+    container_port   = 8000
   }
 
   lifecycle {
