@@ -5,7 +5,14 @@ from sqlalchemy import MetaData, create_engine
 
 SQLALCHEMY_DATABASE_URL = (
     os.environ.get("DATABASE_URL")
-    or "postgresql://dev:password-dev@localhost/ptodo_dev"
+    or '{}://{}:{}@{}:{}/{}'.format(
+        os.environ.get("DATABASE"),
+        os.environ.get("DB_USERNAME"),
+        os.environ.get("DB_PASSWORD"),
+        os.environ.get("DB_HOST"),
+        os.environ.get("DB_PORT"),
+        os.environ.get("DB_NAME"),
+    )
 )
 
 database = Database(

@@ -85,8 +85,10 @@ resource "aws_ecs_task_definition" "backend" {
       "name": "backend",
       "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/ptodo/backend:latest",
       "environment": [
+        {"name": "DATABASE","value": "postgresql"},
         {"name": "DB_HOST","value": "${data.aws_rds_cluster.ptodo.endpoint}"},
-        {"name": "DB_NAME", "value": "ptodo"}
+        {"name": "DB_NAME", "value": "ptodo"},
+        {"name": "DB_PORT", "value": "5432"}
       ],
       "secrets": [
         {"name": "DB_USERNAME", "valueFrom": "/db/username"},
