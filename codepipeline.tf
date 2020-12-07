@@ -46,7 +46,7 @@ data "aws_ssm_parameter" "github_token" {
 }
 
 resource "aws_codepipeline" "ptodo" {
-  name     = "ptodo-frontend"
+  name     = "ptodo"
   role_arn = module.codepipeline_role.iam_role_arn
 
   stage {
