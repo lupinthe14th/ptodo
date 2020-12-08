@@ -5,7 +5,7 @@ from loguru import logger
 from .config import get_settings
 from .database import database, engine
 from .models import metadata
-from .routers import todos
+from .routers import todos, root
 
 metadata.create_all(bind=engine)
 
@@ -40,6 +40,13 @@ def create_application() -> FastAPI:
         prefix="/todos",
         tags=["todos"],
         dependencies=[Depends(get_token_header), Depends(get_settings)],
+        responses={404: {"description": "Not found"}},
+    )
+
+    application.include_router(
+        root.router,
+        tags=["root"],
+        dependencies=[Depends(get_settings)],
         responses={404: {"description": "Not found"}},
     )
 

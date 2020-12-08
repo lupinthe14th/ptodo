@@ -52,7 +52,7 @@ See: http://localhost:3000
 
 ### Swagger API document
 
-See: http://localhost:8000/doc
+See: http://localhost:8000/docs
 
 ### Other Commands
 
