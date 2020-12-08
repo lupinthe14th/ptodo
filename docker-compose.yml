@@ -38,7 +38,7 @@ services:
       - 8000:8000
     container_name: api
   db:
-    image: postgres:10.7
+    image: postgres:10.12
     restart: always
     environment:
       POSTGRES_USER: postgres
