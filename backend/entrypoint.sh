@@ -8,10 +8,10 @@ if [ "${DATABASE_URL}" ]; then
 fi
 
 echo "Waiting for ${DB_HOST} ${DB_PORT} to be ready"
-while ! nc -z ${DB_HOST} ${DB_PORT}; do
-  echo "Sleep"
-  sleep 0.1
-done
+#while ! nc -z ${DB_HOST} ${DB_PORT}; do
+#  echo "Sleep"
+#  sleep 0.1
+#done
 
 echo "PostgreSQL started"
 
