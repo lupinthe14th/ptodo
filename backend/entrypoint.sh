@@ -7,8 +7,9 @@ if [ "${DATABASE_URL}" ]; then
   DB_PORT=$(echo ${URL} | awk -F[:] '{print $2}')
 fi
 
-echo "Waiting for ${DB_HOST:=db}:${DB_PORT:=5432} to be ready"
+echo "Waiting for ${DB_HOST} ${DB_PORT} to be ready"
 while ! nc -z ${DB_HOST} ${DB_PORT}; do
+  echo "Sleep"
   sleep 0.1
 done
 
