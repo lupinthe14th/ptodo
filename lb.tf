@@ -94,7 +94,7 @@ resource "aws_lb_listener" "redirect_http_to_https" {
   }
 }
 
-resource "aws_lb_listener" "https" {
+resource "aws_lb_listener" "ptodo_https" {
   load_balancer_arn = aws_lb.ptodo.arn
   port              = "443"
   protocol          = "HTTPS"
@@ -135,7 +135,7 @@ resource "aws_lb_target_group" "ptodo" {
 }
 
 resource "aws_lb_listener_rule" "ptodo" {
-  listener_arn = aws_lb_listener.https.arn
+  listener_arn = aws_lb_listener.ptodo_https.arn
   priority     = 100
 
   action {
@@ -151,7 +151,7 @@ resource "aws_lb_listener_rule" "ptodo" {
 }
 
 resource "aws_lb_listener_rule" "maintenance" {
-  listener_arn = aws_lb_listener.https.arn
+  listener_arn = aws_lb_listener.ptodo_https.arn
   priority     = 200
 
   action {
@@ -174,7 +174,7 @@ resource "aws_lb_listener_rule" "maintenance" {
 resource "aws_lb" "api" {
   name                       = "api"
   load_balancer_type         = "application"
-  internal                   = true
+  internal                   = false
   idle_timeout               = 60
   enable_deletion_protection = true
 
@@ -187,7 +187,8 @@ resource "aws_lb" "api" {
   }
 
   security_groups = [
-    module.http_sg.this_security_group_id,
+    module.https_sg.this_security_group_id,
+    "sg-00a0759bb8fb650b3"
   ]
   tags = {
     Name        = "ptodo"
@@ -195,10 +196,12 @@ resource "aws_lb" "api" {
   }
 }
 
-resource "aws_lb_listener" "http" {
+resource "aws_lb_listener" "api_https" {
   load_balancer_arn = aws_lb.api.arn
-  port              = "80"
-  protocol          = "HTTP"
+  port              = "443"
+  protocol          = "HTTPS"
+  certificate_arn   = aws_acm_certificate.api.arn
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
 
   default_action {
     type = "fixed-response"
@@ -212,7 +215,7 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_lb_listener_rule" "api" {
-  listener_arn = aws_lb_listener.http.arn
+  listener_arn = aws_lb_listener.api_https.arn
   priority     = 100
 
   action {
@@ -237,7 +240,7 @@ resource "aws_lb_target_group" "api" {
   deregistration_delay = 300
 
   health_check {
-    path                = "/todos"
+    path                = "/healthcheck"
     healthy_threshold   = 5
     unhealthy_threshold = 2
     timeout             = 5
@@ -285,13 +288,13 @@ module "https_sg" {
 # -----------------------------------------------------------------------------
 # DNS
 # -----------------------------------------------------------------------------
-data "aws_route53_zone" "ptodo_ordinarius-fectum" {
+data "aws_route53_zone" "ordinarius-fectum" {
   name = "ordinarius-fectum.net"
 }
 
 resource "aws_route53_record" "ptodo" {
-  zone_id = data.aws_route53_zone.ptodo_ordinarius-fectum.zone_id
-  name    = "ptodo.${data.aws_route53_zone.ptodo_ordinarius-fectum.name}"
+  zone_id = data.aws_route53_zone.ordinarius-fectum.zone_id
+  name    = "ptodo.${data.aws_route53_zone.ordinarius-fectum.name}"
   type    = "A"
 
   alias {
@@ -300,6 +303,19 @@ resource "aws_route53_record" "ptodo" {
     evaluate_target_health = true
   }
 }
+
+resource "aws_route53_record" "api" {
+  zone_id = data.aws_route53_zone.ordinarius-fectum.zone_id
+  name    = "api.${data.aws_route53_zone.ordinarius-fectum.name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.api.dns_name
+    zone_id                = aws_lb.api.zone_id
+    evaluate_target_health = true
+  }
+}
+
 # -----------------------------------------------------------------------------
 # ACM
 # -----------------------------------------------------------------------------
@@ -331,10 +347,46 @@ resource "aws_route53_record" "ptodo_certificate" {
   records         = [each.value.record]
   ttl             = 60
   type            = each.value.type
-  zone_id         = data.aws_route53_zone.ptodo_ordinarius-fectum.zone_id
+  zone_id         = data.aws_route53_zone.ordinarius-fectum.zone_id
 }
 
 resource "aws_acm_certificate_validation" "ptodo" {
   certificate_arn         = aws_acm_certificate.ptodo.arn
   validation_record_fqdns = [for record in aws_route53_record.ptodo_certificate : record.fqdn]
+}
+
+resource "aws_acm_certificate" "api" {
+  domain_name               = aws_route53_record.api.name
+  subject_alternative_names = []
+  validation_method         = "DNS"
+
+  tags = {
+    Name        = "api"
+    Environment = "prod"
+  }
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "api_certificate" {
+  for_each = {
+    for dvo in aws_acm_certificate.api.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.ordinarius-fectum.zone_id
+}
+
+resource "aws_acm_certificate_validation" "api" {
+  certificate_arn         = aws_acm_certificate.api.arn
+  validation_record_fqdns = [for record in aws_route53_record.api_certificate : record.fqdn]
 }

@@ -49,7 +49,7 @@ resource "aws_ecs_task_definition" "frontend" {
       "name": "frontend",
       "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/ptodo/frontend:latest",
       "environment": [
-        {"name": "VITE_API_ENDPOINT","value": "http://${aws_lb.api.dns_name}/todos"}
+        {"name": "VITE_API_ENDPOINT","value": "https://${aws_lb.api.dns_name}/todos/"}
       ],
       "command": ["yarn", "dev"],
       "essential": true,
@@ -64,7 +64,7 @@ resource "aws_ecs_task_definition" "frontend" {
       "portMappings": [
         {
           "protocol":"tcp",
-          "containerPort":3000
+          "containerPort":8080
         }
       ]
     }
@@ -84,6 +84,7 @@ resource "aws_ecs_task_definition" "backend" {
     {
       "name": "backend",
       "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/ptodo/backend:latest",
+      "cpu": 0,
       "environment": [
         {"name": "DATABASE","value": "postgresql"},
         {"name": "DB_HOST","value": "${data.aws_rds_cluster.ptodo.endpoint}"},
@@ -104,10 +105,13 @@ resource "aws_ecs_task_definition" "backend" {
           "awslogs-group": "/ecs/ptodo"
         }
       },
+      "mountPoints": [],
+      "volumesFrom": [],
       "portMappings": [
         {
           "protocol":"tcp",
-          "containerPort":8000
+          "containerPort":8000,
+          "hostPort": 8000
         }
       ]
     }
@@ -126,7 +130,10 @@ resource "aws_ecs_service" "frontend" {
 
   network_configuration {
     assign_public_ip = true
-    security_groups  = [module.frontend_sg.this_security_group_id]
+    security_groups = [
+      module.frontend_sg.this_security_group_id,
+      "sg-00a0759bb8fb650b3"
+    ]
 
     subnets = data.aws_subnet_ids.public.ids
   }
@@ -134,7 +141,7 @@ resource "aws_ecs_service" "frontend" {
   load_balancer {
     target_group_arn = aws_lb_target_group.ptodo.arn
     container_name   = "frontend"
-    container_port   = 3000
+    container_port   = 8080
   }
 
   lifecycle {
@@ -152,7 +159,10 @@ resource "aws_ecs_service" "backend" {
 
   network_configuration {
     assign_public_ip = true
-    security_groups  = [module.backend_sg.this_security_group_id]
+    security_groups = [
+      module.backend_sg.this_security_group_id,
+      "sg-0720af5f93ca52a6b"
+    ]
 
     subnets = data.aws_subnet_ids.public.ids
   }
@@ -180,8 +190,8 @@ module "frontend_sg" {
 
   ingress_with_cidr_blocks = [
     {
-      from_port   = 3000
-      to_port     = 3000
+      from_port   = 8080
+      to_port     = 8080
       protocol    = "tcp"
       description = "frontend service ports"
       cidr_blocks = data.aws_vpc.ptodo.cidr_block
@@ -190,12 +200,11 @@ module "frontend_sg" {
 
   egress_with_cidr_blocks = [
     {
-      from_port   = 443
-      to_port     = 443
-      protocol    = "tcp"
+      rule        = "all-all"
       cidr_blocks = "0.0.0.0/0"
     }
   ]
+
 
   tags = {
     Name        = "ptodo"
@@ -211,21 +220,19 @@ module "backend_sg" {
   description = "Security group with HTTP:8000 ports open for everybody (IPv4 CIDR), egress ports are all world open"
   vpc_id      = data.aws_vpc.ptodo.id
 
-  ingress_with_cidr_blocks = [
+  ingress_with_source_security_group_id = [
     {
-      from_port   = 8000
-      to_port     = 8000
-      protocol    = "tcp"
-      description = "backend service ports"
-      cidr_blocks = data.aws_vpc.ptodo.cidr_block
+      from_port                = 8000
+      to_port                  = 8000
+      protocol                 = "tcp"
+      description              = "backend service ports"
+      source_security_group_id = "sg-00a0759bb8fb650b3"
     }
   ]
 
   egress_with_cidr_blocks = [
     {
-      from_port   = 443
-      to_port     = 443
-      protocol    = "tcp"
+      rule        = "all-all"
       cidr_blocks = "0.0.0.0/0"
     }
   ]
