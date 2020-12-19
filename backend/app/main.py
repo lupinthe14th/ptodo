@@ -22,9 +22,11 @@ def create_application() -> FastAPI:
     application = FastAPI()
 
     origins = [
+        "https://ptodo.ordinarius-fectum.net",
         "http://api:8000",
         "http://localhost:8000",
         "http://localhost:3000",
+        "http://localhost:8080",
     ]
 
     application.add_middleware(

@@ -51,7 +51,7 @@ resource "aws_ecs_task_definition" "frontend" {
       "environment": [
         {"name": "VITE_API_ENDPOINT","value": "https://${aws_lb.api.dns_name}/todos/"}
       ],
-      "command": ["yarn", "dev"],
+      "command": [],
       "essential": true,
       "logConfiguration": {
         "logDriver": "awslogs",
