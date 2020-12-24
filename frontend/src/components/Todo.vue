@@ -31,6 +31,7 @@ import { defineComponent } from "vue";
 import  axios  from "axios";
 
 let baseURL = import.meta.env.VITE_API_ENDPOINT;
+console.log(baseURL)
 const headers = {"accept": "application/json", "x-token": "fake-super-secret-token"};
 
 export default defineComponent({
