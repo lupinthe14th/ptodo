@@ -49,7 +49,7 @@ resource "aws_ecs_task_definition" "frontend" {
       "name": "frontend",
       "image": "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/ptodo/frontend:latest",
       "environment": [
-        {"name": "VITE_API_ENDPOINT","value": "https://${aws_lb.api.dns_name}/todos/"}
+        {"name": "VITE_API_ENDPOINT","value": "https://${aws_route53_record.ptodo.name}/todos/"}
       ],
       "command": [],
       "essential": true,
